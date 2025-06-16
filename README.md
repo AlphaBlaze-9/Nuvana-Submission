@@ -4,7 +4,7 @@
 
 ```bash
 # 1. Install Expo CLI (if you haven’t already)
-npm install --global expo-cli
+npm install expo
 
 # 2. Install project dependencies
 npm install
