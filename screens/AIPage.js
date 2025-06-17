@@ -58,7 +58,7 @@ export default function AIPetPage() {
 
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.title}>Your AI Pet</Text>
+        <Text style={styles.title}>My AI Pet</Text>
       </ScrollView>
 
       <View style={styles.navBar}>

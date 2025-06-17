@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -7,10 +7,12 @@ import {
   Dimensions,
   Image,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   Animated,
+  Platform,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import NuvanaLogo   from '../assets/Nuvana.png';
 import BookIcon     from '../assets/Book.png';
@@ -20,9 +22,12 @@ import CalendarIcon from '../assets/Calendar.png';
 import TextIcon     from '../assets/Text.png';
 
 const { width } = Dimensions.get('window');
-const CARD_PADDING = 16;
-const BG = '#a8e6cf';      
-const CARD_BG = '#d3c6f1';   
+const BG = '#a8e6cf';
+const CARD_BG = '#d3c6f1';
+
+const CARD_MARGIN = 8;
+const NUM_COLS = 2;
+const CARD_SIZE = (width - CARD_MARGIN * (NUM_COLS + 1)) / NUM_COLS;
 
 const navIcons = [
   { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
@@ -32,9 +37,19 @@ const navIcons = [
   { key: 'Text',     src: TextIcon,     routeName: 'AIPage' },
 ];
 
-export default function UploadScreenshotScreen() {
+const INITIAL_ENTRIES = [
+  { id: '1', title: "Samarth's Relief",    subtitle: 'Here’s a quick snapshot…' },
+  { id: '2', title: "Samarth's Creativity", subtitle: 'Another note preview…' },
+  { id: '3', title: "Samarth's Insight",    subtitle: 'More detailed text…' },
+  { id: '4', title: "Samarth's Growth",     subtitle: 'Snapshot of entry…' },
+  { id: '5', title: "Samarth's Peace",      subtitle: 'Some preview…' },
+];
+
+export default function JournalPage() {
   const navigation = useNavigation();
   const route = useRoute();
+
+  const [entries, setEntries] = useState(INITIAL_ENTRIES);
 
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -51,54 +66,97 @@ export default function UploadScreenshotScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [scaleAnim, opacityAnim]);
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const updated = await Promise.all(
+          entries.map(async e => {
+            const stored = await AsyncStorage.getItem(`lastOpened:${e.id}`);
+            return {
+              ...e,
+              lastOpened: stored ?? 'Never opened',
+            };
+          })
+        );
+        setEntries(updated);
+      })();
+    }, [])
+  );
+
+  const openEntry = async entry => {
+    const now = new Date().toLocaleString();
+    await AsyncStorage.setItem(`lastOpened:${entry.id}`, now);
+    navigation.navigate('JournalEntryPage', { entry });
+  };
+
+  const data = [{ type: 'add', id: 'add' }, ...entries.map(e => ({ ...e, type: 'entry' }))];
+
+  function renderTile({ item }) {
+    if (item.type === 'add') {
+      return (
+        <TouchableOpacity
+          style={[styles.card, styles.addCard]}
+          onPress={() => navigation.navigate('JournalEntryPage')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.plus}>+</Text>
+          <Text style={styles.addText}>New Entry</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => openEntry(item)}
+      >
+        <View>
+          <Text style={styles.entryTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.entrySubtitle} numberOfLines={2}>
+            {item.subtitle}
+          </Text>
+        </View>
+        <Text style={styles.entryDate}>{item.lastOpened}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.header}>
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.title}>My Journal</Text>
+      </View>
 
-        <Text style={styles.title}>Your Journal</Text>
-      </ScrollView>
+      <FlatList
+        data={data}
+        keyExtractor={i => i.id}
+        numColumns={NUM_COLS}
+        renderItem={renderTile}
+        contentContainerStyle={styles.gridList}
+      />
 
       <View style={styles.navBar}>
         {navIcons.map(({ key, src, routeName }) => {
           const isActive = route.name === routeName;
-          if (isActive) {
-            return (
-              <Animated.View
-                key={key}
-                style={[
-                  styles.navButton,
-                  styles.activeNavButton,
-                  {
-                    transform: [{ scale: scaleAnim }],
-                    opacity: opacityAnim,
-                  },
-                ]}
-              >
-                <TouchableOpacity onPress={() => navigation.navigate(routeName)}>
-                  <Image
-                    source={src}
-                    style={[styles.navIcon, styles.activeNavIcon]}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          }
+          const wrapperStyle = isActive
+            ? [styles.navButton, styles.activeNavButton, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]
+            : styles.navButton;
+          const iconStyle = isActive
+            ? [styles.navIcon, styles.activeNavIcon]
+            : styles.navIcon;
+
           return (
-            <TouchableOpacity
-              key={key}
-              onPress={() => navigation.navigate(routeName)}
-              style={styles.navButton}
-            >
-              <Image
-                source={src}
-                style={styles.navIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+            <Animated.View key={key} style={wrapperStyle}>
+              <TouchableOpacity onPress={() => navigation.navigate(routeName)}>
+                <Image source={src} style={iconStyle} />
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </View>
@@ -111,22 +169,71 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  scrollContent: {
-    paddingBottom: 100,
+  header: {
     alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginTop: 0,
-    marginBottom: 5,
+    width: 120,
+    height: 120,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: '700',
     color: '#fff',
-    marginTop: 10,
   },
+
+  gridList: {
+    padding: CARD_MARGIN,
+    paddingBottom: 110,
+  },
+  card: {
+    width: 170,
+    height: CARD_SIZE * 1.3,
+    margin: CARD_MARGIN,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
+    padding: CARD_MARGIN,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addCard: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plus: {
+    fontSize: 48,
+    color: '#888',
+    lineHeight: 48,
+  },
+  addText: {
+    marginTop: 4,
+    fontSize: 16,
+    color: '#888',
+  },
+  entryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
+  },
+  entrySubtitle: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 18,
+  },
+  entryDate: {
+    fontSize: 12,
+    color: '#555',
+    textAlign: 'right',
+  },
+
   navBar: {
     position: 'absolute',
     bottom: 10,

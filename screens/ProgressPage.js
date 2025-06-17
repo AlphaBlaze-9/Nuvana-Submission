@@ -59,7 +59,7 @@ export default function ProgressPage() {
 
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.title}>Your Progress</Text>
+        <Text style={styles.title}>My Progress</Text>
 
         <View style={styles.dateRangeContainer}>
           <Text style={styles.dateRangeLabel}>Date Range:</Text>
