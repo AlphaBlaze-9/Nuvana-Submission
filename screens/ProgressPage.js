@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -9,7 +9,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker'; // preserve for Android
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import NuvanaLogo   from '../assets/Nuvana.png';
@@ -20,21 +23,16 @@ import CalendarIcon from '../assets/Calendar.png';
 import TextIcon     from '../assets/Text.png';
 
 const { width } = Dimensions.get('window');
-const CARD_PADDING = 16;
-const BG = '#a8e6cf';          
-const CARD_BG = '#d3c6f1';    
+const BG = '#a8e6cf';
+const CARD_BG = '#d3c6f1';
 
-const navIcons = [
-  { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
-  { key: 'Check',    src: CheckIcon,    routeName: 'ProgressPage' },
-  { key: 'Home',     src: HomeIcon,     routeName: 'HomePage' },
-  { key: 'Calendar', src: CalendarIcon, routeName: 'CalendarPage' },
-  { key: 'Text',     src: TextIcon,     routeName: 'AIPage' },
-];
+const OPTIONS = ['Last 7 Days', 'Last Month', 'Last Year', 'Lifetime', 'Cancel'];
+const CANCEL_INDEX = 4;
 
 export default function ProgressPage() {
   const navigation = useNavigation();
   const route = useRoute();
+  const [dateRange, setDateRange] = useState('Lifetime');
 
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -53,17 +51,52 @@ export default function ProgressPage() {
     ]).start();
   }, [scaleAnim, opacityAnim]);
 
+  const showRangePicker = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: OPTIONS, cancelButtonIndex: CANCEL_INDEX },
+        (buttonIndex) => {
+          if (buttonIndex < CANCEL_INDEX) {
+            setDateRange(OPTIONS[buttonIndex]);
+          }
+        }
+      );
+    }
+    // Android fallback is just the inline picker below
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
-
         <Text style={styles.title}>My Progress</Text>
 
         <View style={styles.dateRangeContainer}>
           <Text style={styles.dateRangeLabel}>Date Range:</Text>
-          <Text style={styles.dateRangeValue}>Lifetime ▼</Text>
+
+          {Platform.OS === 'ios' ? (
+            <TouchableOpacity
+              style={styles.dateRangeValueContainer}
+              activeOpacity={0.7}
+              onPress={showRangePicker}
+            >
+              <Text style={styles.dateRangeValue}>{dateRange} ▼</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={dateRange}
+                onValueChange={setDateRange}
+                style={styles.picker}
+                dropdownIconColor="#fff"
+              >
+                <Picker.Item label="Last 7 Days" value="Last 7 Days" />
+                <Picker.Item label="Last Month"   value="Last Month"   />
+                <Picker.Item label="Last Year"    value="Last Year"    />
+                <Picker.Item label="Lifetime"     value="Lifetime"     />
+              </Picker>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -99,11 +132,7 @@ export default function ProgressPage() {
               onPress={() => navigation.navigate(routeName)}
               style={styles.navButton}
             >
-              <Image
-                source={src}
-                style={styles.navIcon}
-                resizeMode="contain"
-              />
+              <Image source={src} style={styles.navIcon} resizeMode="contain" />
             </TouchableOpacity>
           );
         })}
@@ -111,6 +140,15 @@ export default function ProgressPage() {
     </SafeAreaView>
   );
 }
+
+// keep your existing navIcons array up here
+const navIcons = [
+  { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
+  { key: 'Check',    src: CheckIcon,    routeName: 'ProgressPage' },
+  { key: 'Home',     src: HomeIcon,     routeName: 'HomePage' },
+  { key: 'Calendar', src: CalendarIcon, routeName: 'CalendarPage' },
+  { key: 'Text',     src: TextIcon,     routeName: 'AIPage' },
+];
 
 const styles = StyleSheet.create({
   container: {
@@ -141,16 +179,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     marginTop: 20,
+    width: '90%',
   },
   dateRangeLabel: {
     fontSize: 16,
     color: '#fff',
     marginRight: 8,
   },
+  dateRangeValueContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   dateRangeValue: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
+  },
+  // Android picker fallback
+  pickerWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  picker: {
+    color: '#fff',
+    height: 40,
   },
   navBar: {
     position: 'absolute',

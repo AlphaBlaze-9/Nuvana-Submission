@@ -13,18 +13,18 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-import NuvanaLogo   from '../assets/Nuvana.png';
-import BookIcon     from '../assets/Book.png';
-import CheckIcon    from '../assets/Check.png';
-import HomeIcon     from '../assets/Home.png';
+import NuvanaLogo from '../assets/Nuvana.png';
+import BookIcon from '../assets/Book.png';
+import CheckIcon from '../assets/Check.png';
+import HomeIcon from '../assets/Home.png';
 import CalendarIcon from '../assets/Calendar.png';
-import TextIcon     from '../assets/Text.png';
-import PhoneIcon    from '../assets/phone.png';
+import TextIcon from '../assets/Text.png';
+import PhoneIcon from '../assets/phone.png';
 
 const { width } = Dimensions.get('window');
 const CARD_PADDING = 16;
-const BG = '#a8e6cf';         
-const CARD_BG = '#d3c6f1';    
+const BG = '#a8e6cf';
+const CARD_BG = '#d3c6f1';
 
 function parseDateToYMD(dateString) {
   if (dateString.includes('/')) {
@@ -39,11 +39,12 @@ export default function CalendarPage() {
   const route = useRoute();
   const [selectedDate, setSelectedDate] = useState('');
   const [eventDetails] = useState([
-    { eventName: 'Yoga Workshop',      eventDate: '2025-06-20' },
+    { eventName: 'Yoga Workshop', eventDate: '2025-06-20' },
     { eventName: 'Meditation Retreat', eventDate: '2025-06-25' },
   ]);
 
-  const scaleAnim   = useRef(new Animated.Value(1)).current;
+  // Animation hooks
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -61,23 +62,57 @@ export default function CalendarPage() {
     ]).start();
   }, [scaleAnim, opacityAnim]);
 
+  // Today's date in YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
+
+  // Build markedDates with custom circle styles
   const markedDates = {};
   eventDetails.forEach(evt => {
     const d = parseDateToYMD(evt.eventDate);
-    markedDates[d] = { marked: true, dotColor: BG };
+    markedDates[d] = {
+      customStyles: {
+        container: {
+          borderWidth: 2,
+          borderColor: BG,
+          backgroundColor: CARD_BG,
+        },
+        text: { color: '#fff' },
+      },
+    };
   });
+  if (today) {
+    markedDates[today] = {
+      ...(markedDates[today] || {}),
+      customStyles: {
+        container: {
+          borderWidth: 2,
+          borderColor: '#fff',
+          backgroundColor: CARD_BG,
+        },
+        text: { color: BG, fontWeight: 'bold' },
+      },
+    };
+  }
   if (selectedDate) {
-    markedDates[selectedDate] = { selected: true, selectedColor: '#fff' };
+    markedDates[selectedDate] = {
+      ...(markedDates[selectedDate] || {}),
+      customStyles: {
+        container: {
+          backgroundColor: '#fff',
+        },
+        text: { color: BG },
+      },
+    };
   }
 
   const onDayPress = day => setSelectedDate(day.dateString);
 
   const navIcons = [
-    { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
-    { key: 'Check',    src: CheckIcon,    routeName: 'ProgressPage' },
-    { key: 'Home',     src: HomeIcon,     routeName: 'HomePage' },
+    { key: 'Book', src: BookIcon, routeName: 'JournalPage' },
+    { key: 'Check', src: CheckIcon, routeName: 'ProgressPage' },
+    { key: 'Home', src: HomeIcon, routeName: 'HomePage' },
     { key: 'Calendar', src: CalendarIcon, routeName: 'CalendarPage' },
-    { key: 'Text',     src: TextIcon,     routeName: 'AIPage' },
+    { key: 'Text', src: TextIcon, routeName: 'AIPage' },
   ];
 
   return (
@@ -89,14 +124,12 @@ export default function CalendarPage() {
         <View style={styles.card}>
           <Calendar
             style={styles.calendar}
+            markingType="custom"
             theme={{
               backgroundColor: CARD_BG,
               calendarBackground: CARD_BG,
               monthTextColor: '#fff',
               dayTextColor: '#fff',
-              selectedDayBackgroundColor: '#fff',
-              selectedDayTextColor: BG,
-              todayTextColor: '#fff',
               arrowColor: '#fff',
               textSectionTitleColor: '#fff',
             }}
@@ -129,10 +162,7 @@ export default function CalendarPage() {
                 style={[
                   styles.navButton,
                   styles.activeNavButton,
-                  {
-                    transform: [{ scale: scaleAnim }],
-                    opacity: opacityAnim,
-                  },
+                  { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
                 ]}
               >
                 <TouchableOpacity onPress={() => navigation.navigate(routeName)}>
@@ -151,11 +181,7 @@ export default function CalendarPage() {
               onPress={() => navigation.navigate(routeName)}
               style={styles.navButton}
             >
-              <Image
-                source={src}
-                style={styles.navIcon}
-                resizeMode="contain"
-              />
+              <Image source={src} style={styles.navIcon} resizeMode="contain" />
             </TouchableOpacity>
           );
         })}
@@ -165,25 +191,10 @@ export default function CalendarPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-    alignItems: 'center',
-  },
-  logo: {
-    width: 150,
-    height: 150,
-    marginTop: 0,
-    marginBottom: 5,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  container: { flex: 1, backgroundColor: BG },
+  scrollContent: { paddingBottom: 100, alignItems: 'center' },
+  logo: { width: 150, height: 150, marginTop: 0, marginBottom: 5 },
+  title: { fontSize: 40, fontWeight: '700', color: '#fff' },
   card: {
     width: width * 0.9,
     backgroundColor: CARD_BG,
@@ -191,11 +202,7 @@ const styles = StyleSheet.create({
     padding: CARD_PADDING,
     marginTop: 20,
   },
-  calendar: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
+  calendar: { width: '100%', borderRadius: 12, overflow: 'hidden' },
   upcomingTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -203,11 +210,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  upcomingText: {
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 6,
-  },
+  upcomingText: { fontSize: 16, color: '#fff', marginBottom: 6 },
   navBar: {
     position: 'absolute',
     bottom: 10,
@@ -218,20 +221,8 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     alignItems: 'center',
   },
-  navButton: {
-    padding: 4,
-  },
-  navIcon: {
-    width: 44,
-    height: 44,
-    tintColor: '#fff',
-  },
-  activeNavButton: {
-    backgroundColor: '#fff',
-    borderRadius: 28,
-    padding: 6,
-  },
-  activeNavIcon: {
-    tintColor: BG,
-  },
+  navButton: { padding: 4 },
+  navIcon: { width: 44, height: 44, tintColor: '#fff' },
+  activeNavButton: { backgroundColor: '#fff', borderRadius: 28, padding: 6 },
+  activeNavIcon: { tintColor: BG },
 });
