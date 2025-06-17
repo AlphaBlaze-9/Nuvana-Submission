@@ -41,7 +41,6 @@ export default function HomePage() {
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: 1.2,
@@ -75,6 +74,14 @@ export default function HomePage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Visible logout button */}
+      <TouchableOpacity
+        style={styles.logoutOverlay}
+        onPress={() => navigation.replace('WelcomePage')}
+      >
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
         <Text style={styles.welcomeText}>Welcome, Samarth</Text>
@@ -163,7 +170,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
+  logoutOverlay: {
+    position: 'absolute',
+    top: 70,
+    left: 16,
+    zIndex: 10,
+    backgroundColor: '#d3c6f1',
+    paddingVertical: 10,    // ↑ doubled
+    paddingHorizontal: 5,  // ↑ increased
+    borderRadius: 8,
+    minWidth: 100,          // ensure a minimum tap area
+    alignItems: 'center',   // center the text
+  },
+  logoutText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 18,           // ↑ larger text
+  },
+  
   scrollContent: {
+    paddingTop: 60,      // leave room for logout
     paddingBottom: 100,
     alignItems: 'center',
   },
@@ -171,6 +197,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     marginVertical: 5,
+    marginTop: -70,
   },
   welcomeText: {
     fontSize: 40,

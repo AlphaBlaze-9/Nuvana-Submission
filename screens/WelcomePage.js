@@ -26,16 +26,16 @@ export default function WelcomePage({ navigation }) {
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.replace('SignUp')}
+          onPress={() => navigation.replace('SignUpPage')}
         >
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.replace('HomePage')}
+          onPress={() => navigation.replace('LoginPage')}
         >
-          <Text style={styles.buttonText}>Log In</Text>
+          <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
