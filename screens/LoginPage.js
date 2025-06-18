@@ -1,5 +1,4 @@
-// screens/LoginPage.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,7 +10,9 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Switch,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://weonnniyegpesinyqmrx.supabase.co';
@@ -23,9 +24,29 @@ const BUTTON_WIDTH = width * 0.8;
 const BG = '#a8e6cf';
 
 export default function LoginPage({ navigation }) {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem('rememberMe');
+        if (saved === 'true') {
+          const [ , savedEmail ]     = await AsyncStorage.getItem('email');
+          const [ , savedPassword ]  = await AsyncStorage.getItem('password');
+          if (savedEmail && savedPassword) {
+            setEmail(savedEmail);
+            setPassword(savedPassword);
+            setRememberMe(true);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load credentials', err);
+      }
+    })();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -38,9 +59,22 @@ export default function LoginPage({ navigation }) {
 
     if (error) {
       Alert.alert('Login Error', error.message);
-    } else {
-      navigation.replace('HomePage');
+      return;
     }
+
+    try {
+      if (rememberMe) {
+        await AsyncStorage.setItem('rememberMe', 'true');
+        await AsyncStorage.setItem('email', email);
+        await AsyncStorage.setItem('password', password);
+      } else {
+        await AsyncStorage.multiRemove(['rememberMe', 'email', 'password']);
+      }
+    } catch (err) {
+      console.warn('Failed to persist credentials', err);
+    }
+
+    navigation.replace('HomePage');
   };
 
   return (
@@ -84,6 +118,14 @@ export default function LoginPage({ navigation }) {
           onChangeText={setPassword}
         />
 
+        <View style={styles.rememberContainer}>
+          <Switch
+            value={rememberMe}
+            onValueChange={setRememberMe}
+          />
+          <Text style={styles.rememberText}>Remember Me</Text>
+        </View>
+
         <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
@@ -95,7 +137,10 @@ export default function LoginPage({ navigation }) {
           }
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.replace('SignUpPage')} style={styles.link}>
+        <TouchableOpacity
+          onPress={() => navigation.replace('SignUpPage')}
+          style={styles.link}
+        >
           <Text style={styles.linkText}>Don’t have an account? Sign Up</Text>
         </TouchableOpacity>
       </View>
@@ -152,6 +197,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
     marginVertical: 10,
+    fontSize: 16,
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 10,
+    justifyContent: 'center',
+  },
+  rememberText: {
+    marginLeft: 8,
+    color: '#333',
     fontSize: 16,
   },
   button: {

@@ -12,7 +12,7 @@ import {
   ActionSheetIOS,
   Platform,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker'; // preserve for Android
+import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import NuvanaLogo   from '../assets/Nuvana.png';
@@ -62,7 +62,6 @@ export default function ProgressPage() {
         }
       );
     }
-    // Android fallback is just the inline picker below
   };
 
   return (
@@ -141,7 +140,6 @@ export default function ProgressPage() {
   );
 }
 
-// keep your existing navIcons array up here
 const navIcons = [
   { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
   { key: 'Check',    src: CheckIcon,    routeName: 'ProgressPage' },
@@ -195,7 +193,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  // Android picker fallback
   pickerWrapper: {
     flex: 1,
     justifyContent: 'center',

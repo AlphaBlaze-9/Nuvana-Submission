@@ -67,14 +67,13 @@ export default function HomePage() {
   const navIcons = [
     { key: 'Book',     src: BookIcon,     onPress: () => navigation.navigate('JournalPage') },
     { key: 'Check',    src: CheckIcon,    onPress: () => navigation.navigate('ProgressPage') },
-    { key: 'Home',     src: HomeIcon,     onPress: () => {/* TODO */} },
+    { key: 'Home',     src: HomeIcon,     onPress: () => {} },
     { key: 'Calendar', src: CalendarIcon, onPress: () => navigation.navigate('CalendarPage') },
     { key: 'Text',     src: TextIcon,     onPress: () => navigation.navigate('AIPage') },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Visible logout button */}
       <TouchableOpacity
         style={styles.logoutOverlay}
         onPress={() => navigation.replace('WelcomePage')}
@@ -176,20 +175,20 @@ const styles = StyleSheet.create({
     left: 16,
     zIndex: 10,
     backgroundColor: '#d3c6f1',
-    paddingVertical: 10,    // ↑ doubled
-    paddingHorizontal: 5,  // ↑ increased
+    paddingVertical: 10, 
+    paddingHorizontal: 5, 
     borderRadius: 8,
-    minWidth: 100,          // ensure a minimum tap area
-    alignItems: 'center',   // center the text
+    minWidth: 100,   
+    alignItems: 'center',
   },
   logoutText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 18,           // ↑ larger text
+    fontSize: 18,    
   },
   
   scrollContent: {
-    paddingTop: 60,      // leave room for logout
+    paddingTop: 60,     
     paddingBottom: 100,
     alignItems: 'center',
   },

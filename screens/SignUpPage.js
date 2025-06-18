@@ -1,4 +1,3 @@
-// screens/SignUpPage.js
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -15,7 +14,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://weonnniyegpesinyqmrx.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlb25ubml5ZWdwZXNpbnlxbXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjYyMTEsImV4cCI6MjA2NTcwMjIxMX0.T7Ea5AACLr7aEt8PbijoAyLPR6UjFungv0l-TvO4z-Q'; // your anon key
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlb25ubml5ZWdwZXNpbnlxbXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjYyMTEsImV4cCI6MjA2NTcwMjIxMX0.T7Ea5AACLr7aEt8PbijoAyLPR6UjFungv0l-TvO4z-Q';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const { width } = Dimensions.get('window');

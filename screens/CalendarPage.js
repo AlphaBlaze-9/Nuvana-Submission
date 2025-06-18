@@ -43,7 +43,6 @@ export default function CalendarPage() {
     { eventName: 'Meditation Retreat', eventDate: '2025-06-25' },
   ]);
 
-  // Animation hooks
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -62,10 +61,8 @@ export default function CalendarPage() {
     ]).start();
   }, [scaleAnim, opacityAnim]);
 
-  // Today's date in YYYY-MM-DD
   const today = new Date().toISOString().split('T')[0];
 
-  // Build markedDates with custom circle styles
   const markedDates = {};
   eventDetails.forEach(evt => {
     const d = parseDateToYMD(evt.eventDate);

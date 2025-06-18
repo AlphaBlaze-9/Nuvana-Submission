@@ -24,7 +24,6 @@ export default function JournalEntryPage() {
   const route = useRoute();
   const entry = route.params?.entry || {};
 
-  // Metrics state as numbers
   const [mood, setMood] = useState(entry.mood ? Number(entry.mood) : 1);
   const [craving, setCraving] = useState(entry.craving ? Number(entry.craving) : 1);
   const [sentiment, setSentiment] = useState(
@@ -33,11 +32,9 @@ export default function JournalEntryPage() {
   const [sleep, setSleep] = useState(entry.sleep ? Number(entry.sleep) : 0);
   const [stress, setStress] = useState(entry.stress ? Number(entry.stress) : 1);
 
-  // Journal state
   const [title, setTitle] = useState(entry.title || '');
   const [subtitle, setSubtitle] = useState(entry.subtitle || '');
 
-  // Modal control
   const [modalVisible, setModalVisible] = useState(true);
 
   const handleNext = () => setModalVisible(false);
@@ -59,7 +56,6 @@ export default function JournalEntryPage() {
     });
   };
 
-  // Helper to render a stepper row
   const Stepper = ({ label, value, setValue, min, max, step = 1, decimal }) => (
     <View style={styles.metricRow}>
       <Text style={styles.metricLabel}>{label}</Text>
@@ -91,7 +87,6 @@ export default function JournalEntryPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Check-in Modal */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalContainer}
@@ -119,7 +114,6 @@ export default function JournalEntryPage() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Journal Entry Form (after metrics) */}
       {!modalVisible && (
         <>
           <View style={styles.inlineHeader}>
