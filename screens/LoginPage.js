@@ -34,8 +34,8 @@ export default function LoginPage({ navigation }) {
       try {
         const saved = await AsyncStorage.getItem('rememberMe');
         if (saved === 'true') {
-          const [ , savedEmail ]     = await AsyncStorage.getItem('email');
-          const [ , savedPassword ]  = await AsyncStorage.getItem('password');
+          const savedEmail = await AsyncStorage.getItem('email');
+          const savedPassword = await AsyncStorage.getItem('password');
           if (savedEmail && savedPassword) {
             setEmail(savedEmail);
             setPassword(savedPassword);
