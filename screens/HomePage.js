@@ -19,23 +19,13 @@ import CheckIcon    from '../assets/Check.png';
 import HomeIcon     from '../assets/Home.png';
 import CalendarIcon from '../assets/Calendar.png';
 import TextIcon     from '../assets/Text.png';
-import PhoneIcon    from '../assets/phone.png';
 
 const { width } = Dimensions.get('window');
 const CARD_PADDING = 16;
 const BG = '#a8e6cf';
 
-const ProgressBar = ({ progress }) => (
-  <View style={styles.progressBackground}>
-    <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-  </View>
-);
-
 export default function HomePage() {
   const navigation = useNavigation();
-  const [daysSober] = useState(0.6);
-  const [habit]     = useState(0.4);
-  const [mood]      = useState(0.7);
 
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -84,39 +74,6 @@ export default function HomePage() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
         <Text style={styles.welcomeText}>Welcome, Samarth</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Progress Tracker</Text>
-          <View style={styles.bars}>
-            <Text style={styles.barLabel}>Days Sober</Text>
-            <ProgressBar progress={daysSober} />
-            <Text style={styles.barLabel}>Habit Tracker</Text>
-            <ProgressBar progress={habit} />
-            <Text style={styles.barLabel}>Mood Rating</Text>
-            <ProgressBar progress={mood} />
-          </View>
-        </View>
-
-        <View style={styles.infoRow}>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Today's Focus List</Text>
-            <Text style={styles.infoText}>Integration Journal</Text>
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Quote Of The Day</Text>
-            <Text style={styles.tipText}>"Keep going—every sober day counts!"</Text>
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Support Hotline</Text>
-            <Image source={PhoneIcon} style={styles.hotlineIcon} resizeMode="contain" />
-          </View>
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>Nova To-Do</Text>
-            <Text style={styles.infoText}>• Feed Nova</Text>
-            <Text style={styles.infoText}>• Dress Nova</Text>
-            <Text style={styles.infoText}>• Talk to Nova</Text>
-          </View>
-        </View>
       </ScrollView>
 
       <View style={styles.navBar}>
@@ -175,20 +132,19 @@ const styles = StyleSheet.create({
     left: 16,
     zIndex: 10,
     backgroundColor: '#d3c6f1',
-    paddingVertical: 10, 
-    paddingHorizontal: 5, 
+    paddingVertical: 10,
+    paddingHorizontal: 5,
     borderRadius: 8,
-    minWidth: 100,   
+    minWidth: 100,
     alignItems: 'center',
   },
   logoutText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 18,    
+    fontSize: 18,
   },
-  
   scrollContent: {
-    paddingTop: 60,     
+    paddingTop: 60,
     paddingBottom: 100,
     alignItems: 'center',
   },
@@ -202,77 +158,6 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: '700',
     color: '#fff',
-  },
-  card: {
-    width: width * 0.9,
-    backgroundColor: '#d3c6f1',
-    borderRadius: 20,
-    padding: CARD_PADDING,
-    marginTop: 20,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#fff',
-    textAlign: 'center',
-  },
-  bars: {
-    width: '100%',
-  },
-  barLabel: {
-    fontSize: 14,
-    marginTop: 8,
-    color: '#fff',
-  },
-  progressBackground: {
-    width: '100%',
-    height: 10,
-    backgroundColor: '#eee',
-    borderRadius: 5,
-    marginTop: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 5,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    width,
-    marginTop: 20,
-  },
-  infoBox: {
-    backgroundColor: '#d3c6f1',
-    width: width * 0.45,
-    minHeight: 120,
-    borderRadius: 16,
-    padding: 16,
-    marginVertical: 8,
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#fff',
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 4,
-  },
-  tipText: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    color: '#fff',
-  },
-  hotlineIcon: {
-    width: 48,
-    height: 48,
-    tintColor: '#fff',
-    marginTop: 8,
   },
   navBar: {
     position: 'absolute',
