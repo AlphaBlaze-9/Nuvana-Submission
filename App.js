@@ -20,8 +20,8 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerShown: false,
-          animation: 'none',
+          headerShown: false, 
+          animation: 'fade_from_bottom', 
         }}
       >
         <Stack.Screen name="WelcomePage" component={WelcomePage} />

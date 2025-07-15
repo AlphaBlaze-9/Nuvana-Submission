@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   FlatList,
   Animated,
-  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -38,11 +37,7 @@ const navIcons = [
 ];
 
 const INITIAL_ENTRIES = [
-  { id: '1', title: "Samarth's Relief",    subtitle: 'Here’s a quick snapshot…' },
-  { id: '2', title: "Samarth's Creativity", subtitle: 'Another note preview…' },
-  { id: '3', title: "Samarth's Insight",    subtitle: 'More detailed text…' },
-  { id: '4', title: "Samarth's Growth",     subtitle: 'Snapshot of entry…' },
-  { id: '5', title: "Samarth's Peace",      subtitle: 'Some preview…' },
+  { id: '1', title: "Samarth's Relief", subtitle: 'Here’s a quick snapshot…' },
 ];
 
 export default function JournalPage() {
@@ -56,7 +51,7 @@ export default function JournalPage() {
   useEffect(() => {
     Animated.parallel([
       Animated.timing(scaleAnim, {
-        toValue: 1.2,
+        toValue: 1.3,
         duration: 500,
         useNativeDriver: true,
       }),
@@ -139,6 +134,7 @@ export default function JournalPage() {
         numColumns={NUM_COLS}
         renderItem={renderTile}
         contentContainerStyle={styles.gridList}
+        columnWrapperStyle={styles.row} 
       />
 
       <View style={styles.navBar}>
@@ -189,8 +185,11 @@ const styles = StyleSheet.create({
     padding: CARD_MARGIN,
     paddingBottom: 110,
   },
+  row: {
+    justifyContent: 'center',
+  },
   card: {
-    width: 170,
+    width: CARD_SIZE,
     height: CARD_SIZE * 1.3,
     margin: CARD_MARGIN,
     backgroundColor: CARD_BG,
@@ -252,11 +251,7 @@ const styles = StyleSheet.create({
     height: 44,
     tintColor: '#fff',
   },
-  activeNavButton: {
-    backgroundColor: '#fff',
-    borderRadius: 28,
-    padding: 6,
-  },
+  activeNavButton: { backgroundColor: '#fff', borderRadius: 28, padding: 9 },
   activeNavIcon: {
     tintColor: BG,
   },

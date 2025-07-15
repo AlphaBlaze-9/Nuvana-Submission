@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   SafeAreaView,
   View,
-  TextInput,
+  Text,
   StyleSheet,
   Dimensions,
+  Image,
   TouchableOpacity,
-  Text,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -24,6 +25,8 @@ export default function JournalEntryPage() {
   const route = useRoute();
   const entry = route.params?.entry || {};
 
+  const [modalVisible, setModalVisible] = useState(!entry.id);
+
   const [mood, setMood] = useState(entry.mood ? Number(entry.mood) : 1);
   const [craving, setCraving] = useState(entry.craving ? Number(entry.craving) : 1);
   const [sentiment, setSentiment] = useState(
@@ -34,8 +37,6 @@ export default function JournalEntryPage() {
 
   const [title, setTitle] = useState(entry.title || '');
   const [subtitle, setSubtitle] = useState(entry.subtitle || '');
-
-  const [modalVisible, setModalVisible] = useState(true);
 
   const handleNext = () => setModalVisible(false);
 
@@ -69,9 +70,7 @@ export default function JournalEntryPage() {
       >
         <Text style={styles.stepText}>–</Text>
       </TouchableOpacity>
-      <Text style={styles.metricValue}>
-        {decimal ? value.toFixed(1) : value}
-      </Text>
+      <Text style={styles.metricValue}>{decimal ? value.toFixed(1) : value}</Text>
       <TouchableOpacity
         style={styles.stepButton}
         onPress={() => {
@@ -87,6 +86,7 @@ export default function JournalEntryPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Only show on new entries */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <KeyboardAvoidingView
           style={styles.modalContainer}
@@ -124,6 +124,7 @@ export default function JournalEntryPage() {
               <Text style={styles.headerButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
+
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

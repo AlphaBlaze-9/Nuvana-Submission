@@ -11,47 +11,39 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://weonnniyegpesinyqmrx.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlb25ubml5ZWdwZXNpbnlxbXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjYyMTEsImV4cCI6MjA2NTcwMjIxMX0.T7Ea5AACLr7aEt8PbijoAyLPR6UjFungv0l-TvO4z-Q';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const { width } = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.8;
 const BG = '#a8e6cf';
 
 export default function SignUpPage({ navigation }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
 
-  const handleSignUp = async () => {
+  const handleSignUp = () => {
     if (!email || !password) {
       return Alert.alert('Missing fields', 'Please enter both email and password.');
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    setLoading(false);
 
-    if (error) {
-      Alert.alert('Signup Error', error.message);
-    } else {
-      Alert.alert(
-        'Success',
-        'Signup complete! Please check your email to confirm your account.',
-        [{ text: 'OK', onPress: () => navigation.replace('LoginPage') }]
-      );
-    }
+    setTimeout(() => {
+      setLoading(false);
+      navigation.replace('HomePage');
+    }, 500);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.inlineHeader}>
-      <TouchableOpacity onPress={() => navigation.replace('WelcomePage')} style={styles.headerButton}>
+        <TouchableOpacity
+          onPress={() => navigation.replace('WelcomePage')}
+          style={styles.headerButton}
+        >
           <Text style={styles.headerButtonText}>{'< Back'}</Text>
         </TouchableOpacity>
       </View>
+
       <View style={styles.logoContainer}>
         <Image
           source={require('../assets/Nuvana.png')}
@@ -59,7 +51,9 @@ export default function SignUpPage({ navigation }) {
           resizeMode="contain"
         />
       </View>
+
       <Text style={styles.title}>Get Started</Text>
+
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
@@ -91,7 +85,10 @@ export default function SignUpPage({ navigation }) {
           }
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.link}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.link}
+        >
           <Text style={styles.linkText}>Have an account? Log In</Text>
         </TouchableOpacity>
       </View>

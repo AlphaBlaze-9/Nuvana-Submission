@@ -12,12 +12,6 @@ import {
   Image,
   Switch,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://weonnniyegpesinyqmrx.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indlb25ubml5ZWdwZXNpbnlxbXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMjYyMTEsImV4cCI6MjA2NTcwMjIxMX0.T7Ea5AACLr7aEt8PbijoAyLPR6UjFungv0l-TvO4z-Q';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const { width } = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.8;
@@ -29,52 +23,20 @@ export default function LoginPage({ navigation }) {
   const [loading, setLoading]       = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+
   useEffect(() => {
-    (async () => {
-      try {
-        const saved = await AsyncStorage.getItem('rememberMe');
-        if (saved === 'true') {
-          const savedEmail = await AsyncStorage.getItem('email');
-          const savedPassword = await AsyncStorage.getItem('password');
-          if (savedEmail && savedPassword) {
-            setEmail(savedEmail);
-            setPassword(savedPassword);
-            setRememberMe(true);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load credentials', err);
-      }
-    })();
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (!email || !password) {
       return Alert.alert('Missing fields', 'Please enter both email and password.');
     }
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-
-    if (error) {
-      Alert.alert('Login Error', error.message);
-      return;
-    }
-
-    try {
-      if (rememberMe) {
-        await AsyncStorage.setItem('rememberMe', 'true');
-        await AsyncStorage.setItem('email', email);
-        await AsyncStorage.setItem('password', password);
-      } else {
-        await AsyncStorage.multiRemove(['rememberMe', 'email', 'password']);
-      }
-    } catch (err) {
-      console.warn('Failed to persist credentials', err);
-    }
-
-    navigation.replace('HomePage');
+    setTimeout(() => {
+      setLoading(false);
+      navigation.replace('HomePage');
+    }, 500);
   };
 
   return (

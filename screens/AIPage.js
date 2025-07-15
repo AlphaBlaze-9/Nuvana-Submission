@@ -40,7 +40,7 @@ export default function AIPetPage() {
   useEffect(() => {
     Animated.parallel([
       Animated.timing(scaleAnim, {
-        toValue: 1.2,
+        toValue: 1.3,
         duration: 500,
         useNativeDriver: true,
       }),
@@ -145,11 +145,7 @@ const styles = StyleSheet.create({
     height: 44,
     tintColor: '#fff',
   },
-  activeNavButton: {
-    backgroundColor: '#fff',
-    borderRadius: 28,
-    padding: 6,
-  },
+  activeNavButton: { backgroundColor: '#fff', borderRadius: 28, padding: 9 },
   activeNavIcon: {
     tintColor: BG,
   },
