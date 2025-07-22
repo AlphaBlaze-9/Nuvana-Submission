@@ -17,69 +17,156 @@ import {
   ScrollView,
 } from 'react-native';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import NuvanaLogo from '../assets/Nuvana.png';
-import BookIcon from '../assets/Book.png';
-import CheckIcon from '../assets/Check.png';
-import HomeIcon from '../assets/Home.png';
-import CalendarIcon from '../assets/Calendar.png';
-import TextIcon from '../assets/Text.png';
+import BookIcon   from '../assets/Book.png';
+import CheckIcon  from '../assets/Check.png';
+import HomeIcon   from '../assets/Home.png';
+import TextIcon   from '../assets/Text.png';
 
-const { width } = Dimensions.get('window');
-const BG = '#a8e6cf';
-const CARD_BG = '#d3c6f1';
+const { width }  = Dimensions.get('window');
+const BG         = '#a8e6cf';
+const CARD_BG    = '#d3c6f1';
 const CONTENT_BG = '#f3e7ff';
 
-const API_KEY = '...';
+const API_KEY  = '...';
 const BASE_URL = 'https://api.openai.com/v1/chat/completions';
+
+const SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwzNo-nwaDF09-SCxhNhY7MBzt9UfdgL84olSk6FsJiPiSRC_PFq0JvcjnyV-GlXafNgA/exec';
 
 export default function HomePage() {
   const navigation = useNavigation();
+  const route      = useRoute();
+
+  const [username, setUsername] = useState(route.params?.username || '');
   const [messages, setMessages] = useState([
     {
-      id: '1',
+      id:   '1',
       from: 'nova',
       text: 'Tell me about your day.',
-      time: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [text, setText] = useState('');
 
-  const homeIconAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const homeIconAnim  = useRef(new Animated.Value(1)).current;
+  const opacityAnim   = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef(null);
 
-  const handleSend = async () => {
+  const lastSummarizedIndex = useRef(-1);
+  const isUploadingRef      = useRef(false);
+
+  useEffect(() => {
+    if (!username) {
+      AsyncStorage.getItem('username').then((u) => u && setUsername(u));
+    }
+  }, [username]);
+
+  const handleSend = () => {
     if (!text.trim()) return;
-
     const userMsg = {
-      id: Date.now().toString(),
+      id:   Date.now().toString(),
       from: 'user',
       text: text.trim(),
-      time: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages((m) => [...m, userMsg]);
     setText('');
+  };
 
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.from !== 'user') return;
+
+    (async () => {
+      try {
+        const response = await axios.post(
+          BASE_URL,
+          {
+            model: 'gpt-3.5-turbo',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a compassionate mental health assistant who listens and supports the user. Your role is to help the user express their thoughts and emotions freely. Avoid providing advice or solutions; instead, offer a space for the user to reflect on their day and experiences. Be empathetic, non-judgmental, and remember key details to create a sense of continuity in future conversations.',
+              },
+              { role: 'user', content: last.text },
+            ],
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        const botText = response.data.choices[0].message.content;
+        setMessages((m) => [
+          ...m,
+          {
+            id:   Date.now().toString(),
+            from: 'nova',
+            text: botText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+      } catch (e) {
+        console.error(e);
+        Alert.alert('Error', 'Could not process your request. Please try again.');
+      }
+    })();
+  }, [messages]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    });
+  }, [messages]);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(homeIconAnim, { toValue: 1.3, duration: 500, useNativeDriver: true }),
+      Animated.timing(opacityAnim,  { toValue: 1,   duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    const unsub = navigation.addListener('blur', () => {
+      summarizeAndUpload(messages.length - 1);
+    });
+    return unsub;
+  }, [messages, navigation]);
+
+  const summarizeAndUpload = async (latestUserIndex) => {
+    if (isUploadingRef.current) return;
+    if (latestUserIndex <= lastSummarizedIndex.current) return;
+
+    const userTexts = messages
+      .filter((m, idx) => m.from === 'user' && idx <= latestUserIndex)
+      .map((m) => m.text)
+      .join('\n\n');
+
+    if (!userTexts.trim()) return;
+
+    isUploadingRef.current = true;
     try {
-      const response = await axios.post(
+      const sumResp = await axios.post(
         BASE_URL,
         {
           model: 'gpt-3.5-turbo',
+          temperature: 0.4,
+          max_tokens: 180,
           messages: [
             {
               role: 'system',
               content:
-                'You are a compassionate mental health assistant who listens and supports the user. Your role is to help the user express their thoughts and emotions freely. Avoid providing advice or solutions; instead, offer a space for the user to reflect on their day and experiences. Be empathetic, non-judgmental, and remember key details to create a sense of continuity in future conversations.',
+                'Summarize the main emotional themes and possible concerns from the following chat logs as a brief, non-clinical “diagnosis-style” note for an internal log. 3–5 sentences, neutral tone, no advice, no personally identifiable info. Start with “Summary:”',
             },
-            { role: 'user', content: text.trim() },
+            { role: 'user', content: userTexts },
           ],
         },
         {
@@ -90,72 +177,64 @@ export default function HomePage() {
         }
       );
 
-      const botText = response.data.choices[0].message.content;
-      setMessages((m) => [
-        ...m,
-        {
-          id: Date.now().toString(),
-          from: 'nova',
-          text: botText,
-          time: new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        },
-      ]);
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Could not process your request. Please try again.');
+      const summary  = sumResp.data.choices[0].message.content;
+      const nowISO   = new Date().toISOString();
+      const dateKey  = nowISO.slice(0, 10);
+
+      await fetch(SHEETS_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username || 'Unknown',
+          timestamp: nowISO,
+          dateKey,
+          summary,
+        }),
+      });
+
+      lastSummarizedIndex.current = latestUserIndex;
+    } catch (err) {
+      console.error('Summary upload failed:', err);
+    } finally {
+      isUploadingRef.current = false;
     }
   };
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(homeIconAnim, {
-        toValue: 1.3,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
   const navIcons = [
-    { key: 'Book', src: BookIcon, onPress: () => navigation.navigate('JournalPage') },
+    { key: 'Book',  src: BookIcon,  onPress: () => navigation.navigate('JournalPage') },
     { key: 'Check', src: CheckIcon, onPress: () => navigation.navigate('ProgressPage') },
-    { key: 'Home', src: HomeIcon, onPress: () => {} },
-    { key: 'Calendar', src: CalendarIcon, onPress: () => navigation.navigate('CalendarPage') },
-    { key: 'Text', src: TextIcon, onPress: () => navigation.navigate('AIPage') },
+    { key: 'Home',  src: HomeIcon,  onPress: () => {} },
+    { key: 'Calendar', iconName: 'options-outline', onPress: () => navigation.navigate('CalendarPage') },
+    { key: 'Text',  src: TextIcon,  onPress: () => navigation.navigate('AIPage') },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.therapistBox}>
         <Ionicons name="call" size={16} color={BG} style={{ marginRight: 4 }} />
-        <Text style={styles.therapistText}>
-          Find a{'\n'}Therapist
-        </Text>
+        <Text style={styles.therapistText}>Find a{'\n'}Therapist</Text>
       </View>
 
       <View style={styles.hotlineBox}>
         <Ionicons name="call" size={16} color={BG} style={{ marginRight: 4 }} />
-        <Text style={styles.hotlineText}>
-          Support{'\n'}Hotline
-        </Text>
+        <Text style={styles.hotlineText}>Support{'\n'}Hotline</Text>
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.content}>
           <Image source={NuvanaLogo} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.welcomeText}>Welcome, Samarth</Text>
+          {/* CHANGED HERE */}
+          <Text style={styles.welcomeText}>Welcome</Text>
 
           <View style={styles.chatCard}>
-            <Text style={styles.cardTitle}>Chat With Nova</Text>
-            <ScrollView style={styles.chatContent} contentContainerStyle={styles.chatScroll}>
+          <Text style={styles.cardTitle}>Chat With Nova</Text>
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.chatContent}
+              contentContainerStyle={styles.chatScroll}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+            >
               {messages.map((msg) => (
                 <View
                   key={msg.id}
@@ -181,6 +260,7 @@ export default function HomePage() {
           </View>
         </View>
       </TouchableWithoutFeedback>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
@@ -196,6 +276,8 @@ export default function HomePage() {
             placeholderTextColor="rgba(255,255,255,0.7)"
             value={text}
             onChangeText={setText}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
           />
           <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
             <Ionicons name="paper-plane-outline" size={24} color={BG} />
@@ -204,7 +286,7 @@ export default function HomePage() {
       </KeyboardAvoidingView>
 
       <View style={styles.navBar}>
-        {navIcons.map(({ key, src, onPress }) => {
+        {navIcons.map(({ key, src, iconName, onPress }) => {
           const isActive = key === 'Home';
           return (
             <Animated.View
@@ -216,7 +298,11 @@ export default function HomePage() {
               ]}
             >
               <TouchableOpacity onPress={onPress}>
-                <Image source={src} style={[styles.navIcon, isActive && { tintColor: BG }]} />
+                {iconName ? (
+                  <Ionicons name={iconName} size={44} color={isActive ? BG : '#fff'} />
+                ) : (
+                  <Image source={src} style={[styles.navIcon, isActive && { tintColor: BG }]} />
+                )}
               </TouchableOpacity>
             </Animated.View>
           );
@@ -281,13 +367,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
   },
-  logo: { width: 70, height: 70, marginTop: -75 },
+  logo: { width: 70, height: 70, marginTop: -60 },
   welcomeText: {
     marginTop: 0,
     fontSize: 40,
     fontWeight: '700',
     color: '#fff',
+    textAlign: 'center',
+    width: '100%',
   },
+
   chatCard: {
     width: width - 32,
     backgroundColor: CARD_BG,
@@ -305,7 +394,7 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     width: '100%',
-    maxHeight: 380,
+    flexGrow: 1,
     backgroundColor: CONTENT_BG,
     borderRadius: 16,
     paddingVertical: 10,
@@ -325,12 +414,7 @@ const styles = StyleSheet.create({
   bubbleNova: { backgroundColor: '#fff', borderTopLeftRadius: 0 },
   bubbleUser: { backgroundColor: BG, borderTopRightRadius: 0 },
   messageText: { fontSize: 14, color: '#333' },
-  timestamp: {
-    fontSize: 10,
-    color: '#666',
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
+  timestamp: { fontSize: 10, color: '#666', alignSelf: 'flex-end', marginTop: 4 },
 
   inputWrapper: {
     position: 'absolute',

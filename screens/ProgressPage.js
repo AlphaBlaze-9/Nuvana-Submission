@@ -14,13 +14,13 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-import NuvanaLogo   from '../assets/Nuvana.png';
-import BookIcon     from '../assets/Book.png';
-import CheckIcon    from '../assets/Check.png';
-import HomeIcon     from '../assets/Home.png';
-import CalendarIcon from '../assets/Calendar.png';
-import TextIcon     from '../assets/Text.png';
+import NuvanaLogo from '../assets/Nuvana.png';
+import BookIcon   from '../assets/Book.png';
+import CheckIcon  from '../assets/Check.png';
+import HomeIcon   from '../assets/Home.png';
+import TextIcon   from '../assets/Text.png';
 
 const { width } = Dimensions.get('window');
 const BG = '#a8e6cf';
@@ -36,6 +36,7 @@ export default function ProgressPage() {
 
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(scaleAnim, {
@@ -100,7 +101,7 @@ export default function ProgressPage() {
       </ScrollView>
 
       <View style={styles.navBar}>
-        {navIcons.map(({ key, src, routeName }) => {
+        {navIcons.map(({ key, src, iconName, routeName }) => {
           const isActive = route.name === routeName;
           if (isActive) {
             return (
@@ -109,18 +110,19 @@ export default function ProgressPage() {
                 style={[
                   styles.navButton,
                   styles.activeNavButton,
-                  {
-                    transform: [{ scale: scaleAnim }],
-                    opacity: opacityAnim,
-                  },
+                  { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
                 ]}
               >
                 <TouchableOpacity onPress={() => navigation.navigate(routeName)}>
-                  <Image
-                    source={src}
-                    style={[styles.navIcon, styles.activeNavIcon]}
-                    resizeMode="contain"
-                  />
+                  {iconName ? (
+                    <Ionicons name={iconName} size={44} color={BG} />
+                  ) : (
+                    <Image
+                      source={src}
+                      style={[styles.navIcon, styles.activeNavIcon]}
+                      resizeMode="contain"
+                    />
+                  )}
                 </TouchableOpacity>
               </Animated.View>
             );
@@ -131,7 +133,11 @@ export default function ProgressPage() {
               onPress={() => navigation.navigate(routeName)}
               style={styles.navButton}
             >
-              <Image source={src} style={styles.navIcon} resizeMode="contain" />
+              {iconName ? (
+                <Ionicons name={iconName} size={44} color="#fff" />
+              ) : (
+                <Image source={src} style={styles.navIcon} resizeMode="contain" />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -141,34 +147,18 @@ export default function ProgressPage() {
 }
 
 const navIcons = [
-  { key: 'Book',     src: BookIcon,     routeName: 'JournalPage' },
-  { key: 'Check',    src: CheckIcon,    routeName: 'ProgressPage' },
-  { key: 'Home',     src: HomeIcon,     routeName: 'HomePage' },
-  { key: 'Calendar', src: CalendarIcon, routeName: 'CalendarPage' },
-  { key: 'Text',     src: TextIcon,     routeName: 'AIPage' },
+  { key: 'Book',     src: BookIcon,  routeName: 'JournalPage' },
+  { key: 'Check',    src: CheckIcon, routeName: 'ProgressPage' },
+  { key: 'Home',     src: HomeIcon,  routeName: 'HomePage' },
+  { key: 'Calendar', iconName: 'options-outline', routeName: 'CalendarPage' },
+  { key: 'Text',     src: TextIcon,  routeName: 'AIPage' },
 ];
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-    alignItems: 'center',
-  },
-  logo: {
-    width: 150,
-    height: 150,
-    marginTop: 0,
-    marginBottom: 5,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 10,
-  },
+  container: { flex: 1, backgroundColor: BG },
+  scrollContent: { paddingBottom: 100, alignItems: 'center' },
+  logo: { width: 150, height: 150, marginTop: 0, marginBottom: 5 },
+  title: { fontSize: 40, fontWeight: '700', color: '#fff', marginTop: 10 },
   dateRangeContainer: {
     flexDirection: 'row',
     backgroundColor: CARD_BG,
@@ -179,28 +169,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: '90%',
   },
-  dateRangeLabel: {
-    fontSize: 16,
-    color: '#fff',
-    marginRight: 8,
-  },
-  dateRangeValueContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  dateRangeValue: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  pickerWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: '#fff',
-    height: 40,
-  },
+  dateRangeLabel: { fontSize: 16, color: '#fff', marginRight: 8 },
+  dateRangeValueContainer: { flex: 1, justifyContent: 'center' },
+  dateRangeValue: { fontSize: 16, color: '#fff', fontWeight: '600' },
+  pickerWrapper: { flex: 1, justifyContent: 'center' },
+  picker: { color: '#fff', height: 40 },
   navBar: {
     position: 'absolute',
     bottom: 10,
@@ -211,16 +184,8 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     alignItems: 'center',
   },
-  navButton: {
-    padding: 4,
-  },
-  navIcon: {
-    width: 44,
-    height: 44,
-    tintColor: '#fff',
-  },
+  navButton: { padding: 4 },
+  navIcon: { width: 44, height: 44, tintColor: '#fff' },
   activeNavButton: { backgroundColor: '#fff', borderRadius: 28, padding: 9 },
-  activeNavIcon: {
-    tintColor: BG,
-  },
+  activeNavIcon: { tintColor: BG },
 });

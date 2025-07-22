@@ -12,6 +12,7 @@ import {
   Image,
   Switch,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.8;
@@ -23,20 +24,49 @@ export default function LoginPage({ navigation }) {
   const [loading, setLoading]       = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-
   useEffect(() => {
+    (async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('savedEmail');
+        const savedPass  = await AsyncStorage.getItem('savedPassword');
+        if (savedEmail && savedPass) {
+          setEmail(savedEmail);
+          setPassword(savedPass);
+          setRememberMe(true);
+        }
+      } catch (e) {
+        console.log('Prefill error:', e);
+      }
+    })();
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       return Alert.alert('Missing fields', 'Please enter both email and password.');
     }
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      await new Promise(res => setTimeout(res, 500));
+
+      const username = email.split('@')[0] || email;
+
+      await AsyncStorage.setItem('username', username);
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('savedEmail', email);
+        await AsyncStorage.setItem('savedPassword', password);
+      } else {
+        await AsyncStorage.multiRemove(['savedEmail', 'savedPassword']);
+      }
+
+      navigation.replace('HomePage', { username });
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Login failed', 'Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
-      navigation.replace('HomePage');
-    }, 500);
+    }
   };
 
   return (
@@ -81,28 +111,15 @@ export default function LoginPage({ navigation }) {
         />
 
         <View style={styles.rememberContainer}>
-          <Switch
-            value={rememberMe}
-            onValueChange={setRememberMe}
-          />
+          <Switch value={rememberMe} onValueChange={setRememberMe} />
           <Text style={styles.rememberText}>Remember Me</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.buttonText}>Log In</Text>
-          }
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => navigation.replace('SignUpPage')}
-          style={styles.link}
-        >
+        <TouchableOpacity onPress={() => navigation.replace('SignUpPage')} style={styles.link}>
           <Text style={styles.linkText}>Don’t have an account? Sign Up</Text>
         </TouchableOpacity>
       </View>
@@ -111,10 +128,7 @@ export default function LoginPage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  container: { flex: 1, backgroundColor: BG },
   inlineHeader: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -127,19 +141,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 6,
   },
-  headerButtonText: {
-    color: BG,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: -10,
-  },
-  logo: {
-    width: 250,
-    height: 250,
-  },
+  headerButtonText: { color: BG, fontSize: 16, fontWeight: '600' },
+  logoContainer: { alignItems: 'center', marginTop: -10 },
+  logo: { width: 250, height: 250 },
   title: {
     fontSize: 40,
     fontWeight: '700',
@@ -147,11 +151,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
   },
-  formContainer: {
-    width: BUTTON_WIDTH,
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
+  formContainer: { width: BUTTON_WIDTH, alignItems: 'center', alignSelf: 'center' },
   input: {
     width: '100%',
     backgroundColor: '#fff',
@@ -168,11 +168,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     justifyContent: 'center',
   },
-  rememberText: {
-    marginLeft: 8,
-    color: '#333',
-    fontSize: 16,
-  },
+  rememberText: { marginLeft: 8, color: '#333', fontSize: 16 },
   button: {
     width: '100%',
     paddingVertical: 20,
@@ -181,17 +177,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  link: {
-    marginTop: 8,
-  },
-  linkText: {
-    color: '#333',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
+  buttonText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  link: { marginTop: 8 },
+  linkText: { color: '#333', fontSize: 16, textDecorationLine: 'underline' },
 });
