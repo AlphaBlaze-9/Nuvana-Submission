@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,7 +10,6 @@ import {
   FlatList,
   Animated,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,13 +19,15 @@ import CheckIcon  from '../assets/Check.png';
 import HomeIcon   from '../assets/Home.png';
 import TextIcon   from '../assets/Text.png';
 
-const { width } = Dimensions.get('window');
-const BG = '#a8e6cf';
-const CARD_BG = '#d3c6f1';
+const { width }    = Dimensions.get('window');
+const BG           = '#a8e6cf';
+const CARD_BG      = '#d3c6f1';
+const CARD_MARGIN  = 8;
+const NUM_COLS     = 2;
+const CARD_SIZE    = (width - CARD_MARGIN * (NUM_COLS + 1)) / NUM_COLS;
 
-const CARD_MARGIN = 8;
-const NUM_COLS = 2;
-const CARD_SIZE = (width - CARD_MARGIN * (NUM_COLS + 1)) / NUM_COLS;
+// Your deployed Apps Script URL
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbywroTzSnHJi3UQ3PXDB_tNZ1KeduQkJ0MgCVLw1VL2dcKGndXM7BtYlXE7YJsysyXJ/exec';
 
 const navIcons = [
   { key: 'Book',     src: BookIcon,  routeName: 'JournalPage' },
@@ -36,59 +37,61 @@ const navIcons = [
   { key: 'Text',     src: TextIcon,  routeName: 'AIPage' },
 ];
 
-const INITIAL_ENTRIES = [
-  { id: '1', title: "Samarth's Relief", subtitle: 'Here’s a quick snapshot…' },
-];
-
 export default function JournalPage() {
   const navigation = useNavigation();
-  const route = useRoute();
+  const route      = useRoute();
 
-  const [entries, setEntries] = useState(INITIAL_ENTRIES);
-
+  const [entries, setEntries] = useState([]);
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Icon animation
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 1.3,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      Animated.timing(scaleAnim,    { toValue: 1.3, duration: 500, useNativeDriver: true }),
+      Animated.timing(opacityAnim,  { toValue: 1,   duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      (async () => {
-        const updated = await Promise.all(
-          entries.map(async e => {
-            const stored = await AsyncStorage.getItem(`lastOpened:${e.id}`);
-            return {
-              ...e,
-              lastOpened: stored ?? 'Never opened',
-            };
-          })
-        );
-        setEntries(updated);
-      })();
-    }, [])
-  );
-
-  const openEntry = async entry => {
-    const now = new Date().toLocaleString();
-    await AsyncStorage.setItem(`lastOpened:${entry.id}`, now);
-    navigation.navigate('JournalEntryPage', { entry });
+  // Fetch all rows
+  const fetchEntries = async () => {
+    try {
+      const res  = await fetch(SHEET_API_URL);
+      const json = await res.json();
+      if (json.status === 'ok' && Array.isArray(json.entries)) {
+        setEntries(json.entries);
+      } else {
+        console.warn('Unexpected sheet response:', json);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    }
   };
 
-  const data = [{ type: 'add', id: 'add' }, ...entries.map(e => ({ ...e, type: 'entry' }))];
+  // Reload on screen focus
+  useFocusEffect(useCallback(() => {
+    fetchEntries();
+  }, []));
 
-  function renderTile({ item }) {
+  const openEntry = item => {
+    navigation.navigate('JournalEntryPage', {
+      entry: {
+        id:       item['Entry ID'],
+        title:    item.Title,
+        subtitle: item.Subtitle,
+        mood:     item.Mood,
+        craving:  item.Craving,
+        sentiment:item.Sentiment,
+        sleep:    item.Sleep,
+        stress:   item.Stress,
+      },
+    });
+  };
+
+  // Prepend “New” tile
+  const data = [{ type: 'add', id: 'add' }, ...entries.map(e => ({ ...e, type: 'entry', id: e['Entry ID'] }))];
+
+  const renderTile = ({ item }) => {
     if (item.type === 'add') {
       return (
         <TouchableOpacity
@@ -101,25 +104,28 @@ export default function JournalPage() {
         </TouchableOpacity>
       );
     }
-
     return (
       <TouchableOpacity
         style={styles.card}
-        activeOpacity={0.8}
         onPress={() => openEntry(item)}
+        activeOpacity={0.8}
       >
         <View>
           <Text style={styles.entryTitle} numberOfLines={1}>
-            {item.title}
+            {item.Title}
           </Text>
           <Text style={styles.entrySubtitle} numberOfLines={2}>
-            {item.subtitle}
+            {item.Subtitle}
           </Text>
         </View>
-        <Text style={styles.entryDate}>{item.lastOpened}</Text>
+        {item.Timestamp && (
+          <Text style={styles.entryDate}>
+            {new Date(item.Timestamp).toLocaleDateString()}
+          </Text>
+        )}
       </TouchableOpacity>
     );
-  }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -130,7 +136,7 @@ export default function JournalPage() {
 
       <FlatList
         data={data}
-        keyExtractor={i => i.id}
+        keyExtractor={i => String(Math.random())}  // each row distinct
         numColumns={NUM_COLS}
         renderItem={renderTile}
         contentContainerStyle={styles.gridList}
@@ -141,25 +147,16 @@ export default function JournalPage() {
         {navIcons.map(({ key, src, iconName, routeName }) => {
           const isActive = route.name === routeName;
           const wrapperStyle = isActive
-            ? [styles.navButton, styles.activeNavButton, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]
+            ? [styles.navButton, styles.activeNavButton, { transform:[{ scale: scaleAnim }], opacity: opacityAnim }]
             : styles.navButton;
 
           return (
             <Animated.View key={key} style={wrapperStyle}>
               <TouchableOpacity onPress={() => navigation.navigate(routeName)}>
-                {iconName ? (
-                  <Ionicons
-                    name={iconName}
-                    size={44}
-                    color={isActive ? BG : '#fff'}
-                  />
-                ) : (
-                  <Image
-                    source={src}
-                    style={[styles.navIcon, isActive && styles.activeNavIcon]}
-                    resizeMode="contain"
-                  />
-                )}
+                {iconName
+                 ? <Ionicons name={iconName} size={44} color={isActive?BG:'#fff'} />
+                 : <Image source={src} style={[styles.navIcon, isActive&&styles.activeNavIcon]} resizeMode="contain" />
+                }
               </TouchableOpacity>
             </Animated.View>
           );
@@ -170,14 +167,14 @@ export default function JournalPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
-  header: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
-  logo: { width: 120, height: 120, marginBottom: 4 },
-  title: { fontSize: 34, fontWeight: '700', color: '#fff' },
+  container:    { flex: 1, backgroundColor: BG },
+  header:       { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  logo:         { width: 120, height: 120, marginBottom: 4 },
+  title:        { fontSize: 34, fontWeight: '700', color: '#fff' },
 
-  gridList: { padding: CARD_MARGIN, paddingBottom: 110 },
-  row: { justifyContent: 'center' },
-  card: {
+  gridList:     { padding: CARD_MARGIN, paddingBottom: 110 },
+  row:          { justifyContent: 'center' },
+  card:         {
     width: CARD_SIZE,
     height: CARD_SIZE * 1.3,
     margin: CARD_MARGIN,
@@ -185,31 +182,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: CARD_MARGIN,
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowColor: '#000', shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 4, elevation: 2,
   },
-  addCard: { justifyContent: 'center', alignItems: 'center' },
-  plus: { fontSize: 48, color: '#888', lineHeight: 48 },
-  addText: { marginTop: 4, fontSize: 16, color: '#888' },
-  entryTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, color: '#333' },
-  entrySubtitle: { fontSize: 14, color: '#666', lineHeight: 18 },
-  entryDate: { fontSize: 12, color: '#555', textAlign: 'right' },
+  addCard:      { justifyContent: 'center', alignItems: 'center' },
+  plus:         { fontSize: 48, color: '#888', lineHeight: 48 },
+  addText:      { marginTop: 4, fontSize: 16, color: '#888' },
+  entryTitle:   { fontSize: 16, fontWeight: '600', marginBottom: 4, color: '#333' },
+  entrySubtitle:{ fontSize: 14, color: '#666', lineHeight: 18 },
+  entryDate:    { fontSize: 12, color: '#555', textAlign: 'right' },
 
-  navBar: {
-    position: 'absolute',
-    bottom: 10,
-    width,
-    height: 90,
-    flexDirection: 'row',
+  navBar:       {
+    position: 'absolute', bottom: 10, width,
+    height: 90, flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: CARD_BG,
-    alignItems: 'center',
+    backgroundColor: CARD_BG, alignItems: 'center',
   },
-  navButton: { padding: 4 },
-  navIcon: { width: 44, height: 44, tintColor: '#fff' },
+  navButton:    { padding: 4 },
+  navIcon:      { width: 44, height: 44, tintColor: '#fff' },
   activeNavButton: { backgroundColor: '#fff', borderRadius: 28, padding: 9 },
   activeNavIcon: { tintColor: BG },
 });

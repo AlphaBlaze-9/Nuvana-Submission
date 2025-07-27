@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -26,12 +26,12 @@ const { width } = Dimensions.get('window');
 const BG      = '#a8e6cf';
 const CARD_BG = '#d3c6f1';
 
+// ❗ Move this key server-side ASAP. Never ship real keys in client apps.
 const API_KEY  = '...';
 const BASE_URL = 'https://api.openai.com/v1/chat/completions';
 const SHEETS_READ_URL = 'https://script.google.com/macros/s/AKfycbwfD5bwgqxVMQ6pm29Yjgfzg60MTPSFGxKlg0LwWL-7vj7tF37DCGcaBIIaRhCFNonmWw/exec';
 
 const MAX_ITEM_CHARS = 80;
-const CACHE_TTL_MS   = 5 * 60 * 60 * 1000;
 
 const normalizeItems = (arr) =>
   (Array.isArray(arr) ? arr : []).map((it) =>
@@ -51,9 +51,12 @@ export default function CalendarPage() {
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
 
+  const [refreshes, setRefreshes]     = useState(0);
+
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
+  // Load username from storage if not passed in.
   useEffect(() => {
     if (username) {
       setUReady(true);
@@ -69,13 +72,89 @@ export default function CalendarPage() {
     })();
   }, [username]);
 
+  // Icon pop animation
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(scaleAnim, { toValue: 1.3, duration: 500, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(scaleAnim,   { toValue: 1.3, duration: 500, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1,   duration: 500, useNativeDriver: true }),
     ]).start();
   }, [scaleAnim, opacityAnim]);
 
+  // Fetcher
+  const fetchSuggestions = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Get summary from Sheets
+      const res  = await fetch(`${SHEETS_READ_URL}?username=${encodeURIComponent(username)}`);
+      const text = await res.text();
+
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error('Sheets endpoint did not return JSON');
+      }
+      if (!json.ok || !json.summary) throw new Error('No summary found for user.');
+      const summary = json.summary;
+
+      // 2. Ask OpenAI for 5 coping activities
+      const completion = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          temperature: 0.4,
+          max_tokens: 180,
+          messages: [
+            {
+              role: 'system',
+              content:
+`You are a mental-health support assistant.
+Given a brief emotional summary, suggest 5 short, concrete, healthy coping activities.
+Hard requirements:
+- Each item <= 60 characters, 1 concise action.
+- No explanations or numbering.
+Return ONLY a valid JSON array of strings.`,
+            },
+            { role: 'user', content: `Summary:\n${summary}\n\nReturn 5 items.` },
+          ],
+        }),
+      });
+
+      const data  = await completion.json();
+      let textOut = data?.choices?.[0]?.message?.content ?? '[]';
+      textOut     = textOut.replace(/```json|```/gi, '').trim();
+
+      let rawList = [];
+      try {
+        rawList = JSON.parse(textOut);
+      } catch {
+        rawList = textOut
+          .split('\n')
+          .map(t => t.replace(/^\s*[-•\d.]+\s*/, '').trim())
+          .filter(Boolean)
+          .slice(0, 5);
+      }
+
+      const clipped = (Array.isArray(rawList) ? rawList : []).map(s =>
+        s.length > MAX_ITEM_CHARS ? s.slice(0, MAX_ITEM_CHARS - 1) + '…' : s
+      );
+
+      setSuggestions(normalizeItems(clipped));
+    } catch (err) {
+      // no console.* – just set error
+      setError(err.message || 'Failed to load suggestions');
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
+
+  // Run fetch twice
   useEffect(() => {
     if (!usernameReady) return;
     if (!username) {
@@ -84,112 +163,15 @@ export default function CalendarPage() {
       return;
     }
 
-    const run = async () => {
-      try {
-        const dateKey   = new Date().toISOString().slice(0, 10);
-        const cacheKey  = `suggestions:${username}:${dateKey}`;
-        const cachedRaw = await AsyncStorage.getItem(cacheKey);
-
-        if (cachedRaw) {
-          const cached = JSON.parse(cachedRaw);
-          if (cached?.items && cached?.ts && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-            setSuggestions(normalizeItems(cached.items));
-            setLoading(false);
-            return;
-          }
-        }
-
-        const res  = await fetch(`${SHEETS_READ_URL}?username=${encodeURIComponent(username)}`);
-        const text = await res.text();
-        let json;
-        try {
-          json = JSON.parse(text);
-        } catch {
-          console.warn('Sheets returned non-JSON:\n', text);
-          throw new Error('Sheets endpoint did not return JSON');
-        }
-        if (!json.ok || !json.summary) throw new Error('No summary found for user.');
-        const summary = json.summary;
-
-        const completion = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            temperature: 0.4,
-            max_tokens: 180,
-            messages: [
-              {
-                role: 'system',
-                content:
-`You are a mental-health support assistant.
-Given a brief emotional summary, suggest 5 short, concrete, healthy coping activities.
-Hard requirements:
-- Each item <= 60 characters, 1 concise action.
-- No explanations or numbering.
-Return ONLY a valid JSON array of strings.`,
-              },
-              { role: 'user', content: `Summary:\n${summary}\n\nReturn 5 items.` },
-            ],
-          }),
-        });
-
-        const data  = await completion.json();
-        let textOut = data?.choices?.[0]?.message?.content ?? '[]';
-        textOut     = textOut.replace(/```json|```/gi, '').trim();
-
-        let rawList = [];
-        try {
-          rawList = JSON.parse(textOut);
-        } catch {
-          rawList = textOut
-            .split('\n')
-            .map(t => t.replace(/^\s*[-•\d.]+\s*/, '').trim())
-            .filter(Boolean)
-            .slice(0, 5);
-        }
-
-        const clipped = (Array.isArray(rawList) ? rawList : []).map(s =>
-          s.length > MAX_ITEM_CHARS ? s.slice(0, MAX_ITEM_CHARS - 1) + '…' : s
-        );
-
-        const items = normalizeItems(clipped);
-        setSuggestions(items);
-        await AsyncStorage.setItem(cacheKey, JSON.stringify({ items, ts: Date.now() }));
-      } catch (err) {
-        console.error(err);
-        setError(err.message || 'Failed to load suggestions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    run();
-  }, [usernameReady, username]);
-
-  const toggleDone = async (index) => {
-    try {
-      const dateKey  = new Date().toISOString().slice(0, 10);
-      const cacheKey = `suggestions:${username}:${dateKey}`;
-
-      const updated = suggestions.map((item, i) =>
-        i === index ? { ...item, done: !item.done } : item
-      );
-      setSuggestions(updated);
-
-      const cachedRaw = await AsyncStorage.getItem(cacheKey);
-      let ts = Date.now();
-      if (cachedRaw) {
-        const cached = JSON.parse(cachedRaw);
-        if (cached?.ts) ts = cached.ts;
-      }
-      await AsyncStorage.setItem(cacheKey, JSON.stringify({ items: updated, ts }));
-    } catch (e) {
-      console.log('toggle error', e);
+    if (refreshes < 2) {
+      fetchSuggestions().finally(() => setRefreshes(r => r + 1));
     }
+  }, [usernameReady, username, refreshes, fetchSuggestions]);
+
+  const toggleDone = (index) => {
+    setSuggestions(prev =>
+      prev.map((item, i) => (i === index ? { ...item, done: !item.done } : item))
+    );
   };
 
   const navIcons = [
