@@ -27,7 +27,7 @@ const BG = '#a8e6cf';
 const CARD_BG = '#d3c6f1';
 
 // === OpenAI setup (same style as your sample) ===
-const API_KEY  = 'REDACTED';
+const API_KEY  = '..';
 const BASE_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Pet persona instructions (short, clear)

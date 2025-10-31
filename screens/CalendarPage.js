@@ -30,7 +30,7 @@ const BG      = '#a8e6cf';
 const CARD_BG = '#d3c6f1';
 
 // ❗ Move this key server-side ASAP. Never ship real keys in client apps.
-const API_KEY  = 'REDACTED';
+const API_KEY  = '...';
 const BASE_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Your existing Apps Script endpoint (supports GET summary; we’ll POST events too)
