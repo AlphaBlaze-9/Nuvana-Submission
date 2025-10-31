@@ -33,9 +33,9 @@ const { width }           = Dimensions.get('window');
 const BG                  = '#a8e6cf';
 const CARD_BG             = '#d3c6f1';
 const CONTENT_BG          = '#f3e7ff';
-const API_KEY             = '...';
+const API_KEY             = 'REDACTED';
 const BASE_URL            = 'https://api.openai.com/v1/chat/completions';
-const SHEETS_WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbwzNo-nwaDF09-SCxhNhY7MBzt9UfdgL84olSk6FsJiPiSRC_PFq0JvcjnyV-GlXafNgA/exec';
+const SHEETS_WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbz0XpvknugZlGoelhg-n2QLkXwBThcKDChrINzjwE-m7M4gqkR043BsWr4Fv1pxW9XFkg/exec';
 const DANGER_REGEX        = /\b(suicid|die|kill|harm|self-?harm|overdose|unsafe|danger|hopeless)\b/i;
 
 export default function HomePage() {
@@ -250,6 +250,25 @@ export default function HomePage() {
               ))}
             </ScrollView>
           </View>
+
+          {/* === Daily Wellness Summary Card (added) === */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryLeft}>
+              <Ionicons name="sunny-outline" size={32} color="#fff" />
+            </View>
+            <View style={styles.summaryRight}>
+              <Text style={styles.summaryTitle}>Daily Wellness</Text>
+              <Text style={styles.summaryText}>
+                {(() => {
+                  const hour = new Date().getHours();
+                  if (hour < 12) return "☀️ Start your day with gratitude and a deep breath.";
+                  if (hour < 18) return "🌿 Stay hydrated and take a mindful 2-minute stretch.";
+                  return "🌙 Wind down — write one good thing about today before bed.";
+                })()}
+              </Text>
+            </View>
+          </View>
+          {/* === End Daily Wellness Summary Card === */}
         </View>
       </TouchableWithoutFeedback>
 
@@ -386,6 +405,43 @@ const styles = StyleSheet.create({
   bubbleUser:     { backgroundColor: BG, borderTopRightRadius: 0 },
   messageText:    { fontSize: 14, color: '#333' },
   timestamp:      { fontSize: 10, color: '#666', alignSelf: 'flex-end', marginTop: 4 },
+
+  /* 🌿 New Daily Wellness Card */
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 130,
+    width: width - 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  summaryLeft: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ffffff33',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  summaryRight: { flex: 1 },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#f8f8f8',
+    lineHeight: 20,
+  },
 
   inputWrapper:   { position: 'absolute', bottom: 320, width, alignItems: 'center' },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD_BG, borderRadius: 24, paddingVertical: 8, paddingHorizontal: 12, width: width - 32 },
